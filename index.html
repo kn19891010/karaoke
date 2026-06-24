@@ -9,8 +9,9 @@
         h1, h2 { color: #2c3e50; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .search-box, .list-box { margin-bottom: 25px; }
-        input[type="text"] { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .song-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        input[type="text"], select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .song-item { padding: 15px; border-bottom: 1px solid #eee; }
+        .song-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         button { background-color: #3498db; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         button:hover { background-color: #2980b9; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -18,15 +19,24 @@
         th { background-color: #f2f2f2; }
         .delete-btn { background-color: #e74c3c; }
         .delete-btn:hover { background-color: #c0392b; }
-        .range-badge { font-size: 0.9em; color: #7f8c8d; }
+        .range-badge { font-size: 0.9em; color: #7f8c8d; font-weight: bold; }
         #loadingStatus { color: #e67e22; font-weight: bold; margin-bottom: 10px; }
+        
+        /* 🎹 鍵盤のスタイリング */
+        .keyboard { display: flex; position: relative; background: #000; padding: 2px; border-radius: 4px; width: 100%; height: 60px; box-sizing: border-box; margin-top: 5px; }
+        .white-key { flex: 1; background: white; border: 1px solid #ccc; margin: 0 1px; border-radius: 0 0 3px 3px; position: relative; cursor: default; }
+        .black-key { position: absolute; background: #333; width: 4%; height: 60%; z-index: 2; border-radius: 0 0 2px 2px; }
+        /* 鍵盤の色付け用クラス */
+        .white-key.low-target { background-color: #3498db !important; } /* 最低音：青 */
+        .white-key.high-target { background-color: #e74c3c !important; } /* 最高音：赤 */
+        .black-key.low-target { background-color: #2980b9 !important; }
+        .black-key.high-target { background-color: #c0392b !important; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>🎤 カラオケ音域マスター</h1>
-    
     <div id="loadingStatus">データを読み込み中...</div>
 
     <div class="search-box">
@@ -39,6 +49,13 @@
 
     <div class="list-box">
         <h2>🌟 歌いたいリスト</h2>
+        <label for="sortSelect" style="font-size: 0.9em; font-weight: bold;">並び替え:</label>
+        <select id="sortSelect" onchange="sortMyList()">
+            <option value="default">追加順</option>
+            <option value="lowAsc">最低音が低い順</option>
+            <option value="highDesc">最高音が高い順</option>
+        </select>
+
         <table>
             <thead>
                 <tr>
@@ -55,92 +72,187 @@
 </div>
 
 <script>
-// Googleスプレッドシートから「ウェブに公開(CSV)」で取得したURLをここに貼り付けます
-// 新しい形式のURLに書き換えます
+// あなたのGoogleスプレッドシートURL（前回のものをそのまま使ってください）
 const csvUrl = "https://docs.google.com/spreadsheets/d/1IVKhiXU2tkcck9dn3jcCOpSLw_UO7FDYa46igBDoaqw/export?format=csv";
+
+// 音階の定義と、ソート用の「高さ数値（スコア）」のマッピングテーブル (MatlabのLook-up tableと同じ)
+const noteMapping = {
+    "low1G": { name: "低 ソ", score: 1 }, "low1G#": { name: "低 ソ#", score: 2 },
+    "low1A": { name: "低 ラ", score: 3 }, "low1A#": { name: "低 ラ#", score: 4 },
+    "low1B": { name: "低 シ", score: 5 },
+    "mid1A": { name: "ラ", score: 6 },    "mid1A#": { name: "ラ#", score: 7 },
+    "mid1B": { name: "シ", score: 8 },
+    "mid1C": { name: "ド", score: 9 },    "mid1C#": { name: "ド#", score: 10 },
+    "mid1D": { name: "レ", score: 11 },   "mid1D#": { name: "レ#", score: 12 },
+    "mid1E": { name: "ミ", score: 13 },
+    "mid1F": { name: "ファ", score: 14 },  "mid1F#": { name: "ファ#", score: 15 },
+    "mid1G": { name: "ソ", score: 16 },    "mid1G#": { name: "ソ#", score: 17 },
+    "mid2A": { name: "高 ラ", score: 18 },  "mid2A#": { name: "高 ラ#", score: 19 },
+    "mid2B": { name: "高 シ", score: 20 },
+    "hiC":   { name: "高 ド", score: 21 },  "hiC#":   { name: "高 ド#", score: 22 },
+    "hiD":   { name: "高 レ", score: 23 },  "hiD#":   { name: "高 レ#", score: 24 },
+    "hiE":   { name: "高 ミ", score: 25 },
+    "hiF":   { name: "高 ファ", score: 26 }, "hiF#":   { name: "高 ファ#", score: 27 },
+    "hiG":   { name: "高 ソ", score: 28 },  "hiG#":   { name: "高 ソ#", score: 29 }
+};
+
+// 🎹 鍵盤に並べる音（左から順）
+const keyboardNotes = [
+    "mid1A", "mid1A#", "mid1B", "mid1C", "mid1C#", "mid1D", "mid1D#", "mid1E", "mid1F", "mid1F#", "mid1G", "mid1G#",
+    "mid2A", "mid2A#", "mid2B", "hiC", "hiC#", "hiD", "hiD#", "hiE", "hiF", "hiF#", "hiG", "hiG#"
+];
+
 let songDatabase = [];
 let mySongs = JSON.parse(localStorage.getItem('myKaraokeList')) || [];
 
-// 起動時にスプレッドシートからデータを取得する (Matlabのデータインポート処理のようなもの)
+// データ取得
 fetch(csvUrl)
     .then(response => response.text())
     .then(csvText => {
         songDatabase = parseCSV(csvText);
         document.getElementById('loadingStatus').innerText = `データ同期完了！ (総数: ${songDatabase.length}曲)`;
-        document.getElementById('searchInput').disabled = false; // 検索可能にする
+        document.getElementById('searchInput').disabled = false;
     })
-        .catch(error => {
-        // ここを書き換えてエラー内容を画面に出すようにします
-        document.getElementById('loadingStatus').innerText = "エラー発生: " + error.message;
-        console.error(error);
+    .catch(error => {
+        document.getElementById('loadingStatus').innerText = "エラー発生: Failed to fetch";
     });
 
 updateMyListUI();
 
-// 簡易CSVパース関数 (Matlabでいうテキスト解析処理)
 function parseCSV(text) {
     const lines = text.split("\n");
     const result = [];
-    // 1行目はヘッダー(artist, title...)なので i=1 からスタート
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i]) continue;
         const cols = lines[i].split(",");
         if (cols.length >= 4) {
             result.push({
-                artist: cols[0].trim(),
-                title: cols[1].trim(),
-                low: cols[2].trim(),
-                high: cols[3].trim()
+                artist: cols[0].trim(), title: cols[1].trim(),
+                low: cols[2].trim(),    high: cols[3].trim()
             });
         }
     }
     return result;
 }
 
-// 検索処理
+// 🔊 音名変換関数
+function convertToDoremi(key) {
+    return noteMapping[key] ? noteMapping[key].name : key;
+}
+
+// 🎹 鍵盤のHTMLを生成する関数
+function generateKeyboardHTML(lowKey, highKey) {
+    let html = '<div class="keyboard">';
+    let whiteLeft = 0;
+    
+    // 白鍵と黒鍵の位置をマッピング
+    keyboardNotes.forEach((key) => {
+        const isBlack = key.includes('#');
+        let statusClass = '';
+        if (key === lowKey) statusClass = ' low-target';
+        if (key === highKey) statusClass = ' high-target';
+
+        if (!isBlack) {
+            html += `<div class="white-key${statusClass}" title="${convertToDoremi(key)}"></div>`;
+        }
+    });
+
+    // 黒鍵を上に重ねる処理
+    let whiteCount = 0;
+    keyboardNotes.forEach((key) => {
+        const isBlack = key.includes('#');
+        let statusClass = '';
+        if (key === lowKey) statusClass = ' low-target';
+        if (key === highKey) statusClass = ' high-target';
+
+        if (isBlack) {
+            // 前の白鍵の位置をベースに黒鍵を配置
+            let leftPercent = (whiteCount * 7.14) - 2.5; 
+            html += `<div class="black-key${statusClass}" style="left: ${leftPercent}%;" title="${convertToDoremi(key)}"></div>`;
+        } else {
+            whiteCount++;
+        }
+    });
+
+    html += '</div>';
+    return html;
+}
+
+// 検索・表示
 function searchSongs() {
     const query = document.getElementById('searchInput').value.toLowerCase();
     const resultsDiv = document.getElementById('searchResults');
     resultsDiv.innerHTML = '';
-
     if (query.trim() === '') return;
 
     const filtered = songDatabase.filter(song => 
-        song.artist.toLowerCase().includes(query) || 
-        song.title.toLowerCase().includes(query)
+        song.artist.toLowerCase().includes(query) || song.title.toLowerCase().includes(query)
     );
 
     filtered.forEach(song => {
         const div = document.createElement('div');
         div.className = 'song-item';
+        
+        // 鍵盤の生成
+        const keyboardHTML = generateKeyboardHTML(song.low, song.high);
+
         div.innerHTML = `
-            <div>
-                <strong>${song.title}</strong> / ${song.artist} <br>
-                <span class="range-badge">原曲キー: ${song.low} ～ ${song.high}</span>
+            <div class="song-info">
+                <div>
+                    <strong>${song.title}</strong> / ${song.artist} <br>
+                    <span class="range-badge">原曲キー: <span style="color:#3498db">${convertToDoremi(song.low)}</span> ～ <span style="color:#e74c3c">${convertToDoremi(song.high)}</span></span>
+                </div>
+                <button onclick="addToMyList('${escapeHtml(song.artist)}', '${escapeHtml(song.title)}', '${escapeHtml(song.low)}', '${escapeHtml(song.high)}')">追加</button>
             </div>
-            <button onclick="addToMyList('${escapeHtml(song.artist)}', '${escapeHtml(song.title)}', '${escapeHtml(song.low)}', '${escapeHtml(song.high)}')">追加</button>
+            ${keyboardHTML}
         `;
         resultsDiv.appendChild(div);
     });
 }
 
 function addToMyList(artist, title, low, high) {
-    const isExist = mySongs.some(song => song.artist === artist && song.title === title);
-    if (isExist) {
-        alert('この曲はすでにリストに登録されています！');
+    if (mySongs.some(song => song.artist === artist && song.title === title)) {
+        alert('すでに登録されています！');
         return;
     }
     mySongs.push({ artist, title, low, high });
     localStorage.setItem('myKaraokeList', JSON.stringify(mySongs));
-    updateMyListUI();
+    sortMyList(); // ソートを適用して更新
     document.getElementById('searchInput').value = '';
     document.getElementById('searchResults').innerHTML = '';
 }
 
-function deleteFromMyList(index) {
-    mySongs.splice(index, 1);
-    localStorage.setItem('myKaraokeList', JSON.stringify(mySongs));
+// ↕️ ソート処理 (Matlabの sortrows のようなロジック)
+function sortMyList() {
+    const sortType = document.getElementById('sortSelect').value;
+    
+    if (sortType === 'lowAsc') {
+        // 最低音スコアが低い順（値が小さい順）
+        mySongs.sort((a, b) => {
+            const scoreA = noteMapping[a.low] ? noteMapping[a.low].score : 99;
+            const scoreB = noteMapping[b.low] ? noteMapping[b.low].score : 99;
+            return scoreA - scoreB;
+        });
+    } else if (sortType === 'highDesc') {
+        // 最高音スコアが高い順（値が大きい順）
+        mySongs.sort((a, b) => {
+            const scoreA = noteMapping[a.high] ? noteMapping[a.high].score : 0;
+            const scoreB = noteMapping[b.high] ? noteMapping[b.high].score : 0;
+            return scoreB - scoreA;
+        });
+    } else {
+        // デフォルト（LocalStorageに保存されている現在の順序）
+        mySongs = JSON.parse(localStorage.getItem('myKaraokeList')) || [];
+    }
     updateMyListUI();
+}
+
+function deleteFromMyList(index) {
+    // 現在表示されている順序のデータを1件削除
+    mySongs.splice(index, 1);
+    // 元のリストデータとして保存
+    localStorage.setItem('myKaraokeList', JSON.stringify(mySongs));
+    sortMyList();
 }
 
 function updateMyListUI() {
@@ -151,18 +263,15 @@ function updateMyListUI() {
         tr.innerHTML = `
             <td>${song.artist}</td>
             <td>${song.title}</td>
-            <td>${song.low}</td>
-            <td>${song.high}</td>
+            <td style="color:#3498db; font-weight:bold;">${convertToDoremi(song.low)}</td>
+            <td style="color:#e74c3c; font-weight:bold;">${convertToDoremi(song.high)}</td>
             <td><button class="delete-btn" onclick="deleteFromMyList(${index})">削除</button></td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// 安全対策用エスケープ関数
-function escapeHtml(str) {
-    return str.replace(/['"]/g, "");
-}
+function escapeHtml(str) { return str.replace(/['"]/g, ""); }
 </script>
 
 </body>
