@@ -7,11 +7,11 @@
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f5f5f5; color: #333; }
         h1, h2 { color: #2c3e50; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .container { max-width: 650px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .search-box, .list-box { margin-bottom: 25px; }
         input[type="text"], select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .song-item { padding: 15px; border-bottom: 1px solid #eee; }
-        .song-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .song-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         button { background-color: #3498db; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         button:hover { background-color: #2980b9; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -22,15 +22,17 @@
         .range-badge { font-size: 0.9em; color: #7f8c8d; font-weight: bold; }
         #loadingStatus { color: #e67e22; font-weight: bold; margin-bottom: 10px; }
         
-        /* 🎹 鍵盤のスタイリング */
-        .keyboard { display: flex; position: relative; background: #000; padding: 2px; border-radius: 4px; width: 100%; height: 60px; box-sizing: border-box; margin-top: 5px; }
-        .white-key { flex: 1; background: white; border: 1px solid #ccc; margin: 0 1px; border-radius: 0 0 3px 3px; position: relative; cursor: default; }
-        .black-key { position: absolute; background: #333; width: 4%; height: 60%; z-index: 2; border-radius: 0 0 2px 2px; }
-        /* 鍵盤の色付け用クラス */
-        .white-key.low-target { background-color: #3498db !important; } /* 最低音：青 */
-        .white-key.high-target { background-color: #e74c3c !important; } /* 最高音：赤 */
-        .black-key.low-target { background-color: #2980b9 !important; }
-        .black-key.high-target { background-color: #c0392b !important; }
+        /* 🎹 改良版：細長くワイドな鍵盤（47鍵対応） */
+        .keyboard { display: flex; position: relative; background: #222; padding: 1px; border-radius: 2px; width: 100%; height: 35px; box-sizing: border-box; margin-top: 5px; }
+        .white-key { flex: 1; background: white; border-right: 1px solid #ddd; position: relative; cursor: default; }
+        .white-key:last-child { border-right: none; }
+        .black-key { position: absolute; background: #333; width: 1.5%; height: 60%; z-index: 2; }
+        
+        /* 最低音・最高音のカラー着色（!importantで白・黒の上書きを保証） */
+        .white-key.low-target { background-color: #3498db !important; }  /* 青 */
+        .white-key.high-target { background-color: #e74c3c !important; } /* 赤 */
+        .black-key.low-target { background-color: #2980b9 !important; }  /* 濃い青 */
+        .black-key.high-target { background-color: #c0392b !important; } /* 濃い赤 */
     </style>
 </head>
 <body>
@@ -72,40 +74,61 @@
 </div>
 
 <script>
-// あなたのGoogleスプレッドシートURL（前回のものをそのまま使ってください）
+// あなたのGoogleスプレッドシートURLをここに貼り付けてください
 const csvUrl = "https://docs.google.com/spreadsheets/d/1IVKhiXU2tkcck9dn3jcCOpSLw_UO7FDYa46igBDoaqw/export?format=csv";
 
-// 音階の定義と、ソート用の「高さ数値（スコア）」のマッピングテーブル (MatlabのLook-up tableと同じ)
+// 音階マッピングテーブル（sour系の補完 ＆ 超高音域まで拡張。計47鍵スコア化）
 const noteMapping = {
-    "low1G": { name: "低 ソ", score: 1 }, "low1G#": { name: "低 ソ#", score: 2 },
-    "low1A": { name: "低 ラ", score: 3 }, "low1A#": { name: "低 ラ#", score: 4 },
-    "low1B": { name: "低 シ", score: 5 },
-    "mid1A": { name: "ラ", score: 6 },    "mid1A#": { name: "ラ#", score: 7 },
-    "mid1B": { name: "シ", score: 8 },
-    "mid1C": { name: "ド", score: 9 },    "mid1C#": { name: "ド#", score: 10 },
-    "mid1D": { name: "レ", score: 11 },   "mid1D#": { name: "レ#", score: 12 },
-    "mid1E": { name: "ミ", score: 13 },
-    "mid1F": { name: "ファ", score: 14 },  "mid1F#": { name: "ファ#", score: 15 },
-    "mid1G": { name: "ソ", score: 16 },    "mid1G#": { name: "ソ#", score: 17 },
-    "mid2A": { name: "高 ラ", score: 18 },  "mid2A#": { name: "高 ラ#", score: 19 },
-    "mid2B": { name: "高 シ", score: 20 },
-    "hiC":   { name: "高 ド", score: 21 },  "hiC#":   { name: "高 ド#", score: 22 },
-    "hiD":   { name: "高 レ", score: 23 },  "hiD#":   { name: "高 レ#", score: 24 },
-    "hiE":   { name: "高 ミ", score: 25 },
-    "hiF":   { name: "高 ファ", score: 26 }, "hiF#":   { name: "高 ファ#", score: 27 },
-    "hiG":   { name: "高 ソ", score: 28 },  "hiG#":   { name: "高 ソ#", score: 29 }
+    // low / sour 音域 (最低音によく使われるエリア)
+    "low1C": { name: "下 ド", score: 1 },   "low1C#": { name: "下 ド#", score: 2 },
+    "low1D": { name: "下 レ", score: 3 },   "low1D#": { name: "下 レ#", score: 4 },
+    "low1E": { name: "下 ミ", score: 5 },
+    "low1F": { name: "下 ファ", score: 6 },  "low1F#": { name: "下 ファ#", score: 7 },
+    "low1G": { name: "下 ソ", score: 8 },   "low1G#": { name: "下 ソ#", score: 9 },
+    "sour1G": { name: "下 ソ", score: 8 },  "sour1G#": { name: "下 ソ#", score: 9 }, // sourの救済追加
+    "low1A": { name: "下 ラ", score: 10 },  "low1A#": { name: "下 ラ#", score: 11 },
+    "sour1A": { name: "下 ラ", score: 10 }, "sour1A#": { name: "下 ラ#", score: 11 },
+    "low1B": { name: "下 シ", score: 12 },  "sour1B": { name: "下 シ", score: 12 },
+    
+    // mid1 音域 (標準的な音域)
+    "mid1A": { name: "低 ラ", score: 13 },  "mid1A#": { name: "低 ラ#", score: 14 },
+    "mid1B": { name: "低 シ", score: 15 },
+    "mid1C": { name: "ド", score: 16 },     "mid1C#": { name: "ド#", score: 17 },
+    "mid1D": { name: "レ", score: 18 },     "mid1D#": { name: "レ#", score: 19 },
+    "mid1E": { name: "ミ", score: 20 },
+    "mid1F": { name: "ファ", score: 21 },   "mid1F#": { name: "ファ#", score: 22 },
+    "mid1G": { name: "ソ", score: 23 },     "mid1G#": { name: "ソ#", score: 24 },
+    
+    // mid2 音域 (少し高めのエリア)
+    "mid2A": { name: "ラ", score: 25 },     "mid2A#": { name: "ラ#", score: 26 },
+    "mid2B": { name: "シ", score: 27 },
+    "mid2C": { name: "高 ド", score: 28 },   "mid2C#": { name: "高 ド#", score: 29 },
+    "mid2D": { name: "高 レ", score: 30 },   "mid2D#": { name: "高 レ#", score: 31 },
+    "mid2E": { name: "高 ミ", score: 32 },
+    "mid2F": { name: "高 ファ", score: 33 }, "mid2F#": { name: "高 ファ#", score: 34 },
+    "mid2G": { name: "高 ソ", score: 35 },   "mid2G#": { name: "高 ソ#", score: 36 },
+    
+    // hi / hihi 音域 (高音・超高音エリア)
+    "hiC":   { name: "高 ド", score: 37 },   "hiC#":   { name: "高 ド#", score: 38 },
+    "hiD":   { name: "高 レ", score: 39 },   "hiD#":   { name: "高 レ#", score: 40 },
+    "hiE":   { name: "高 ミ", score: 41 },
+    "hiF":   { name: "高 ファ", score: 42 }, "hiF#":   { name: "高 ファ#", score: 43 },
+    "hiG":   { name: "高 ソ", score: 44 },   "hiG#":   { name: "高 ソ#", score: 45 },
+    "hihiA": { name: "超 ラ", score: 46 },   "hihiA#": { name: "超 ラ#", score: 47 },
+    "hihiB": { name: "超 シ", score: 48 },   "hihiC":  { name: "超 ド", score: 49 }
 };
 
-// 🎹 鍵盤に並べる音（左から順）
+// 🎹 新・ワイド鍵盤に並べる音階配列（low1CからhihiCまでの47鍵を隙間なく網羅）
 const keyboardNotes = [
+    "low1C", "low1C#", "low1D", "low1D#", "low1E", "low1F", "low1F#", "low1G", "low1G#", "low1A", "low1A#", "low1B",
     "mid1A", "mid1A#", "mid1B", "mid1C", "mid1C#", "mid1D", "mid1D#", "mid1E", "mid1F", "mid1F#", "mid1G", "mid1G#",
-    "mid2A", "mid2A#", "mid2B", "hiC", "hiC#", "hiD", "hiD#", "hiE", "hiF", "hiF#", "hiG", "hiG#"
+    "mid2A", "mid2A#", "mid2B", "hiC", "hiC#", "hiD", "hiD#", "hiE", "hiF", "hiF#", "hiG", "hiG#",
+    "hihiA", "hihiA#", "hihiB", "hihiC"
 ];
 
 let songDatabase = [];
 let mySongs = JSON.parse(localStorage.getItem('myKaraokeList')) || [];
 
-// データ取得
 fetch(csvUrl)
     .then(response => response.text())
     .then(csvText => {
@@ -135,42 +158,50 @@ function parseCSV(text) {
     return result;
 }
 
-// 🔊 音名変換関数
 function convertToDoremi(key) {
     return noteMapping[key] ? noteMapping[key].name : key;
 }
 
-// 🎹 鍵盤のHTMLを生成する関数
+// 🎹 47鍵対応の新しいスマート鍵盤生成アルゴリズム
 function generateKeyboardHTML(lowKey, highKey) {
-    let html = '<div class="keyboard">';
-    let whiteLeft = 0;
-    
-    // 白鍵と黒鍵の位置をマッピング
-    keyboardNotes.forEach((key) => {
-        const isBlack = key.includes('#');
-        let statusClass = '';
-        if (key === lowKey) statusClass = ' low-target';
-        if (key === highKey) statusClass = ' high-target';
+    // sour1Gなどの別名表記を内部スコアが一致する統一キー名(low1Gなど)に正規化
+    let normLow = lowKey;
+    let normHigh = highKey;
+    if (lowKey.startsWith("sour")) normLow = lowKey.replace("sour", "low");
+    if (highKey.startsWith("sour")) normHigh = highKey.replace("sour", "low");
 
-        if (!isBlack) {
+    let html = '<div class="keyboard">';
+    
+    // 1. まず白鍵だけを並べる
+    let whiteKeysCount = 0;
+    keyboardNotes.forEach((key) => {
+        if (!key.includes('#')) whiteKeysCount++;
+    });
+
+    keyboardNotes.forEach((key) => {
+        if (!key.includes('#')) {
+            let statusClass = '';
+            if (key === normLow) statusClass = ' low-target';
+            if (key === normHigh) statusClass = ' high-target';
             html += `<div class="white-key${statusClass}" title="${convertToDoremi(key)}"></div>`;
         }
     });
 
-    // 黒鍵を上に重ねる処理
-    let whiteCount = 0;
-    keyboardNotes.forEach((key) => {
-        const isBlack = key.includes('#');
-        let statusClass = '';
-        if (key === lowKey) statusClass = ' low-target';
-        if (key === highKey) statusClass = ' high-target';
+    // 2. 白鍵の総数から計算して、黒鍵をミリ単位で正確な位置に絶対配置(Absolute)する
+    let whiteIndex = 0;
+    const keyWidthPercent = 100 / whiteKeysCount; // 白鍵1枚あたりの幅%
 
-        if (isBlack) {
-            // 前の白鍵の位置をベースに黒鍵を配置
-            let leftPercent = (whiteCount * 7.14) - 2.5; 
-            html += `<div class="black-key${statusClass}" style="left: ${leftPercent}%;" title="${convertToDoremi(key)}"></div>`;
+    keyboardNotes.forEach((key) => {
+        if (key.includes('#')) {
+            let statusClass = '';
+            if (key === normLow) statusClass = ' low-target';
+            if (key === normHigh) statusClass = ' high-target';
+            
+            // 黒鍵は直前の白鍵の右端をまたぐように配置
+            let leftPosition = (whiteIndex * keyWidthPercent) - (keyWidthPercent * 0.35);
+            html += `<div class="black-key${statusClass}" style="left: ${leftPosition}%; width: ${keyWidthPercent * 0.7}%;" title="${convertToDoremi(key)}"></div>`;
         } else {
-            whiteCount++;
+            whiteIndex++;
         }
     });
 
@@ -178,7 +209,6 @@ function generateKeyboardHTML(lowKey, highKey) {
     return html;
 }
 
-// 検索・表示
 function searchSongs() {
     const query = document.getElementById('searchInput').value.toLowerCase();
     const resultsDiv = document.getElementById('searchResults');
@@ -192,8 +222,6 @@ function searchSongs() {
     filtered.forEach(song => {
         const div = document.createElement('div');
         div.className = 'song-item';
-        
-        // 鍵盤の生成
         const keyboardHTML = generateKeyboardHTML(song.low, song.high);
 
         div.innerHTML = `
@@ -217,40 +245,33 @@ function addToMyList(artist, title, low, high) {
     }
     mySongs.push({ artist, title, low, high });
     localStorage.setItem('myKaraokeList', JSON.stringify(mySongs));
-    sortMyList(); // ソートを適用して更新
+    sortMyList();
     document.getElementById('searchInput').value = '';
     document.getElementById('searchResults').innerHTML = '';
 }
 
-// ↕️ ソート処理 (Matlabの sortrows のようなロジック)
 function sortMyList() {
     const sortType = document.getElementById('sortSelect').value;
-    
     if (sortType === 'lowAsc') {
-        // 最低音スコアが低い順（値が小さい順）
         mySongs.sort((a, b) => {
             const scoreA = noteMapping[a.low] ? noteMapping[a.low].score : 99;
             const scoreB = noteMapping[b.low] ? noteMapping[b.low].score : 99;
             return scoreA - scoreB;
         });
     } else if (sortType === 'highDesc') {
-        // 最高音スコアが高い順（値が大きい順）
         mySongs.sort((a, b) => {
             const scoreA = noteMapping[a.high] ? noteMapping[a.high].score : 0;
             const scoreB = noteMapping[b.high] ? noteMapping[b.high].score : 0;
             return scoreB - scoreA;
         });
     } else {
-        // デフォルト（LocalStorageに保存されている現在の順序）
         mySongs = JSON.parse(localStorage.getItem('myKaraokeList')) || [];
     }
     updateMyListUI();
 }
 
 function deleteFromMyList(index) {
-    // 現在表示されている順序のデータを1件削除
     mySongs.splice(index, 1);
-    // 元のリストデータとして保存
     localStorage.setItem('myKaraokeList', JSON.stringify(mySongs));
     sortMyList();
 }
