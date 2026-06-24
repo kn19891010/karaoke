@@ -77,51 +77,53 @@
 // あなたのGoogleスプレッドシートURLをここに貼り付けてください
 const csvUrl = "https://docs.google.com/spreadsheets/d/1IVKhiXU2tkcck9dn3jcCOpSLw_UO7FDYa46igBDoaqw/export?format=csv";
 
-// 音階マッピングテーブル（sour系の補完 ＆ 超高音域まで拡張。計47鍵スコア化）
+// 音階マッピングテーブル（重複を排除し、スコアを綺麗に整列）
 const noteMapping = {
-    // low / sour 音域 (最低音によく使われるエリア)
+    // low / sour 音域 (最低音エリア：下ド〜下ソ#)
     "low1C": { name: "下 ド", score: 1 },   "low1C#": { name: "下 ド#", score: 2 },
     "low1D": { name: "下 レ", score: 3 },   "low1D#": { name: "下 レ#", score: 4 },
     "low1E": { name: "下 ミ", score: 5 },
     "low1F": { name: "下 ファ", score: 6 },  "low1F#": { name: "下 ファ#", score: 7 },
     "low1G": { name: "下 ソ", score: 8 },   "low1G#": { name: "下 ソ#", score: 9 },
-    "sour1G": { name: "下 ソ", score: 8 },  "sour1G#": { name: "下 ソ#", score: 9 }, // sourの救済追加
-    "low1A": { name: "下 ラ", score: 10 },  "low1A#": { name: "下 ラ#", score: 11 },
-    "sour1A": { name: "下 ラ", score: 10 }, "sour1A#": { name: "下 ラ#", score: 11 },
-    "low1B": { name: "下 シ", score: 12 },  "sour1B": { name: "下 シ", score: 12 },
+    "sour1G": { name: "下 ソ", score: 8 },  "sour1G#": { name: "下 ソ#", score: 9 }, // 救済用
     
-    // mid1 音域 (標準的な音域)
-    "mid1A": { name: "低 ラ", score: 13 },  "mid1A#": { name: "低 ラ#", score: 14 },
-    "mid1B": { name: "低 シ", score: 15 },
-    "mid1C": { name: "ド", score: 16 },     "mid1C#": { name: "ド#", score: 17 },
-    "mid1D": { name: "レ", score: 18 },     "mid1D#": { name: "レ#", score: 19 },
-    "mid1E": { name: "ミ", score: 20 },
-    "mid1F": { name: "ファ", score: 21 },   "mid1F#": { name: "ファ#", score: 22 },
-    "mid1G": { name: "ソ", score: 23 },     "mid1G#": { name: "ソ#", score: 24 },
+    // mid1 音域 (標準的な男性の低音エリア：低ラ〜ソ#)
+    "low1A": { name: "低 ラ", score: 10 },  "low1A#": { name: "低 ラ#", score: 11 },
+    "low1B": { name: "低 シ", score: 12 },
+    "sour1A": { name: "低 ラ", score: 10 }, "sour1A#": { name: "低 ラ#", score: 11 }, // 救済用
+    "sour1B": { name: "低 シ", score: 12 },                                         // 救済用
+    "mid1A": { name: "低 ラ", score: 10 },  "mid1A#": { name: "低 ラ#", score: 11 }, // 重複を同じスコアに統合
+    "mid1B": { name: "低 シ", score: 12 },
     
-    // mid2 音域 (少し高めのエリア)
-    "mid2A": { name: "ラ", score: 25 },     "mid2A#": { name: "ラ#", score: 26 },
-    "mid2B": { name: "シ", score: 27 },
-    "mid2C": { name: "高 ド", score: 28 },   "mid2C#": { name: "高 ド#", score: 29 },
-    "mid2D": { name: "高 レ", score: 30 },   "mid2D#": { name: "高 レ#", score: 31 },
-    "mid2E": { name: "高 ミ", score: 32 },
-    "mid2F": { name: "高 ファ", score: 33 }, "mid2F#": { name: "高 ファ#", score: 34 },
-    "mid2G": { name: "高 ソ", score: 35 },   "mid2G#": { name: "高 ソ#", score: 36 },
+    "mid1C": { name: "ド", score: 13 },     "mid1C#": { name: "ド#", score: 14 },
+    "mid1D": { name: "レ", score: 15 },     "mid1D#": { name: "レ#", score: 16 },
+    "mid1E": { name: "ミ", score: 17 },
+    "mid1F": { name: "ファ", score: 18 },   "mid1F#": { name: "ファ#", score: 19 },
+    "mid1G": { name: "ソ", score: 20 },     "mid1G#": { name: "ソ#", score: 21 },
     
-    // hi / hihi 音域 (高音・超高音エリア)
-    "hiC":   { name: "高 ド", score: 37 },   "hiC#":   { name: "高 ド#", score: 38 },
-    "hiD":   { name: "高 レ", score: 39 },   "hiD#":   { name: "高 レ#", score: 40 },
-    "hiE":   { name: "高 ミ", score: 41 },
-    "hiF":   { name: "高 ファ", score: 42 }, "hiF#":   { name: "高 ファ#", score: 43 },
-    "hiG":   { name: "高 ソ", score: 44 },   "hiG#":   { name: "高 ソ#", score: 45 },
-    "hihiA": { name: "超 ラ", score: 46 },   "hihiA#": { name: "超 ラ#", score: 47 },
-    "hihiB": { name: "超 シ", score: 48 },   "hihiC":  { name: "超 ド", score: 49 }
+    // mid2 音域 (一般的な中高音エリア：ラ〜高ソ#)
+    "mid2A": { name: "ラ", score: 22 },     "mid2A#": { name: "ラ#", score: 23 },
+    "mid2B": { name: "シ", score: 24 },
+    "mid2C": { name: "高 ド", score: 25 },   "mid2C#": { name: "高 ド#", score: 26 },
+    "mid2D": { name: "高 レ", score: 27 },   "mid2D#": { name: "高 レ#", score: 28 },
+    "mid2E": { name: "高 ミ", score: 29 },
+    "mid2F": { name: "高 ファ", score: 30 }, "mid2F#": { name: "高 ファ#", score: 31 },
+    "mid2G": { name: "高 ソ", score: 32 },   "mid2G#": { name: "高 ソ#", score: 33 },
+    
+    // hi / hihi 音域 (裏声・超高音エリア：高ド〜超ド)
+    "hiC":   { name: "高 ド", score: 34 },   "hiC#":   { name: "高 ド#", score: 35 },
+    "hiD":   { name: "高 レ", score: 36 },   "hiD#":   { name: "高 レ#", score: 37 },
+    "hiE":   { name: "高 ミ", score: 38 },
+    "hiF":   { name: "高 ファ", score: 39 }, "hiF#":   { name: "高 ファ#", score: 40 },
+    "hiG":   { name: "高 ソ", score: 41 },   "hiG#":   { name: "高 ソ#", score: 42 },
+    "hihiA": { name: "超 ラ", score: 43 },   "hihiA#": { name: "超 ラ#", score: 44 },
+    "hihiB": { name: "超 シ", score: 45 },   "hihiC":  { name: "超 ド", score: 46 }
 };
 
-// 🎹 新・ワイド鍵盤に並べる音階配列（low1CからhihiCまでの47鍵を隙間なく網羅）
+// 🎹 正しい41鍵盤の並び（重複していたmid1A系をきれいに排除）
 const keyboardNotes = [
     "low1C", "low1C#", "low1D", "low1D#", "low1E", "low1F", "low1F#", "low1G", "low1G#", "low1A", "low1A#", "low1B",
-    "mid1A", "mid1A#", "mid1B", "mid1C", "mid1C#", "mid1D", "mid1D#", "mid1E", "mid1F", "mid1F#", "mid1G", "mid1G#",
+    "mid1C", "mid1C#", "mid1D", "mid1D#", "mid1E", "mid1F", "mid1F#", "mid1G", "mid1G#",
     "mid2A", "mid2A#", "mid2B", "hiC", "hiC#", "hiD", "hiD#", "hiE", "hiF", "hiF#", "hiG", "hiG#",
     "hihiA", "hihiA#", "hihiB", "hihiC"
 ];
@@ -163,10 +165,10 @@ function convertToDoremi(key) {
 }
 
 // 🎹 47鍵対応の新しいスマート鍵盤生成アルゴリズム
-function generateKeyboardHTML(lowKey, highKey) {
-    // sour1Gなどの別名表記を内部スコアが一致する統一キー名(low1Gなど)に正規化
-    let normLow = lowKey;
-    let normHigh = highKey;
+    function generateKeyboardHTML(lowKey, highKey) {
+    // 表記揺れ（sourやmid1Aなど）を、鍵盤配列(keyboardNotes)の基準名に完全正規化
+    let normLow = lowKey.replace("sour", "low").replace("mid1A", "low1A").replace("mid1B", "low1B");
+    let normHigh = highKey.replace("sour", "low").replace("mid1A", "low1A").replace("mid1B", "low1B");
     if (lowKey.startsWith("sour")) normLow = lowKey.replace("sour", "low");
     if (highKey.startsWith("sour")) normHigh = highKey.replace("sour", "low");
 
