@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カラオケ音域管理アプリ</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f5f5f5; color: #333; }
+        h1, h2 { color: #2c3e50; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .search-box, .list-box { margin-bottom: 25px; }
+        input[type="text"] { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .song-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        button { background-color: #3498db; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #2980b9; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .delete-btn { background-color: #e74c3c; }
+        .delete-btn:hover { background-color: #c0392b; }
+        .range-badge { font-size: 0.9em; color: #7f8c8d; }
+        #loadingStatus { color: #e67e22; font-weight: bold; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎤 カラオケ音域マスター</h1>
+    
+    <div id="loadingStatus">データを読み込み中...</div>
+
+    <div class="search-box">
+        <h2>曲を検索する</h2>
+        <input type="text" id="searchInput" oninput="searchSongs()" placeholder="歌手名または曲名を入力..." disabled>
+        <div id="searchResults"></div>
+    </div>
+
+    <hr>
+
+    <div class="list-box">
+        <h2>🌟 歌いたいリスト</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>歌手名</th>
+                    <th>曲名</th>
+                    <th>最低音</th>
+                    <th>最高音</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="myListBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Googleスプレッドシートから「ウェブに公開(CSV)」で取得したURLをここに貼り付けます
+// 新しい形式のURLに書き換えます
+const csvUrl = "https://docs.google.com/spreadsheets/d/1npPp1J2c-Jqpn2cmbfpqS0p5gAOavUt25bLRrkZDOdU/export?format=csv";
+let songDatabase = [];
+let mySongs = JSON.parse(localStorage.getItem('myKaraokeList')) || [];
+
+// 起動時にスプレッドシートからデータを取得する (Matlabのデータインポート処理のようなもの)
+fetch(csvUrl)
+    .then(response => response.text())
+    .then(csvText => {
+        songDatabase = parseCSV(csvText);
+        document.getElementById('loadingStatus').innerText = `データ同期完了！ (総数: ${songDatabase.length}曲)`;
+        document.getElementById('searchInput').disabled = false; // 検索可能にする
+    })
+        .catch(error => {
+        // ここを書き換えてエラー内容を画面に出すようにします
+        document.getElementById('loadingStatus').innerText = "エラー発生: " + error.message;
+        console.error(error);
+    });
+
+updateMyListUI();
+
+// 簡易CSVパース関数 (Matlabでいうテキスト解析処理)
+function parseCSV(text) {
+    const lines = text.split("\n");
+    const result = [];
+    // 1行目はヘッダー(artist, title...)なので i=1 からスタート
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i]) continue;
+        const cols = lines[i].split(",");
+        if (cols.length >= 4) {
+            result.push({
+                artist: cols[0].trim(),
+                title: cols[1].trim(),
+                low: cols[2].trim(),
+                high: cols[3].trim()
+            });
+        }
+    }
+    return result;
+}
+
+// 検索処理
+function searchSongs() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const resultsDiv = document.getElementById('searchResults');
+    resultsDiv.innerHTML = '';
+
+    if (query.trim() === '') return;
+
+    const filtered = songDatabase.filter(song => 
+        song.artist.toLowerCase().includes(query) || 
+        song.title.toLowerCase().includes(query)
+    );
+
+    filtered.forEach(song => {
+        const div = document.createElement('div');
+        div.className = 'song-item';
+        div.innerHTML = `
+            <div>
+                <strong>${song.title}</strong> / ${song.artist} <br>
+                <span class="range-badge">原曲キー: ${song.low} ～ ${song.high}</span>
+            </div>
+            <button onclick="addToMyList('${escapeHtml(song.artist)}', '${escapeHtml(song.title)}', '${escapeHtml(song.low)}', '${escapeHtml(song.high)}')">追加</button>
+        `;
+        resultsDiv.appendChild(div);
+    });
+}
+
+function addToMyList(artist, title, low, high) {
+    const isExist = mySongs.some(song => song.artist === artist && song.title === title);
+    if (isExist) {
+        alert('この曲はすでにリストに登録されています！');
+        return;
+    }
+    mySongs.push({ artist, title, low, high });
+    localStorage.setItem('myKaraokeList', JSON.stringify(mySongs));
+    updateMyListUI();
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchResults').innerHTML = '';
+}
+
+function deleteFromMyList(index) {
+    mySongs.splice(index, 1);
+    localStorage.setItem('myKaraokeList', JSON.stringify(mySongs));
+    updateMyListUI();
+}
+
+function updateMyListUI() {
+    const tbody = document.getElementById('myListBody');
+    tbody.innerHTML = '';
+    mySongs.forEach((song, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${song.artist}</td>
+            <td>${song.title}</td>
+            <td>${song.low}</td>
+            <td>${song.high}</td>
+            <td><button class="delete-btn" onclick="deleteFromMyList(${index})">削除</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// 安全対策用エスケープ関数
+function escapeHtml(str) {
+    return str.replace(/['"]/g, "");
+}
+</script>
+
+</body>
+</html>
