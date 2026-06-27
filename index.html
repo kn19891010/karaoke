@@ -28,7 +28,7 @@
         .white-key:last-child { border-right: none; }
         .black-key { position: absolute; background: #333; width: 1.5%; height: 60%; z-index: 2; }
         
-        /* ターゲット着色（優先順位を保証するため詳細度を高く設定） */
+        /* ターゲット着色 */
         .keyboard .white-key.low-target { background-color: #3498db !important; }    /* 最低音：スカイブルー */
         .keyboard .white-key.high-target { background-color: #2c3e50 !important; }   /* 最高音：ディープブルー */
         .keyboard .white-key.f-low-target { background-color: #e67e22 !important; }  /* 裏声低：オレンジ */
@@ -81,9 +81,7 @@
 </div>
 
 <script>
-// あなたのGoogleスプレッドシートURLをここに貼り付けてください
 const csvUrl = "https://docs.google.com/spreadsheets/d/1IVKhiXU2tkcck9dn3jcCOpSLw_UO7FDYa46igBDoaqw/export?format=csv";
-// 日本語表現の整合性を修正（mid2=高、hi=超、hihi=超超）
 const noteMapping = {
     "low1C": { name: "下 ド", score: 1 },   "low1C#": { name: "下 ド#", score: 2 },
     "low1D": { name: "下 レ", score: 3 },   "low1D#": { name: "下 レ#", score: 4 },
@@ -117,10 +115,12 @@ const noteMapping = {
     "hihiB": { name: "超超 シ", score: 45 }, "hihiC":  { name: "超超 ド", score: 46 }
 };
 
+// 🎹 鍵盤の並び順の抜け・スキップを完全に修正
 const keyboardNotes = [
     "low1C", "low1C#", "low1D", "low1D#", "low1E", "low1F", "low1F#", "low1G", "low1G#", "low1A", "low1A#", "low1B",
     "mid1C", "mid1C#", "mid1D", "mid1D#", "mid1E", "mid1F", "mid1F#", "mid1G", "mid1G#",
-    "mid2A", "mid2A#", "mid2B", "hiC", "hiC#", "hiD", "hiD#", "hiE", "hiF", "hiF#", "hiG", "hiG#",
+    "mid2A", "mid2A#", "mid2B", "mid2C", "mid2C#", "mid2D", "mid2D#", "mid2E", "mid2F", "mid2F#", "mid2G", "mid2G#",
+    "hiC", "hiC#", "hiD", "hiD#", "hiE", "hiF", "hiF#", "hiG", "hiG#",
     "hihiA", "hihiA#", "hihiB", "hihiC"
 ];
 
@@ -163,7 +163,6 @@ function convertToDoremi(key) {
     return noteMapping[key] ? noteMapping[key].name : key;
 }
 
-// クラス付与ロジックを修正。スペースの挟み方を厳密にし上書きを防ぐ
 function getKeyClass(key, nLow, nHigh, nFLow, nFHigh) {
     let classes = [];
     if (key === nLow) classes.push('low-target');
