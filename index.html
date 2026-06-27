@@ -28,16 +28,16 @@
         .white-key:last-child { border-right: none; }
         .black-key { position: absolute; background: #333; width: 1.5%; height: 60%; z-index: 2; }
         
-        /* ターゲット着色（地声：青系、裏声：橙・赤系） */
-        .white-key.low-target { background-color: #3498db !important; }          /* 最低音：スカイブルー */
-        .white-key.high-target { background-color: #2c3e50 !important; }         /* 最高音：ディープブルー */
-        .white-key.f-low-target { background-color: #e67e22 !important; }        /* 裏声低：オレンジ */
-        .white-key.f-high-target { background-color: #e74c3c !important; }       /* 裏声高：レッド */
+        /* ターゲット着色（優先順位を保証するため詳細度を高く設定） */
+        .keyboard .white-key.low-target { background-color: #3498db !important; }    /* 最低音：スカイブルー */
+        .keyboard .white-key.high-target { background-color: #2c3e50 !important; }   /* 最高音：ディープブルー */
+        .keyboard .white-key.f-low-target { background-color: #e67e22 !important; }  /* 裏声低：オレンジ */
+        .keyboard .white-key.f-high-target { background-color: #e74c3c !important; } /* 裏声高：レッド */
 
-        .black-key.low-target { background-color: #2980b9 !important; }
-        .black-key.high-target { background-color: #1a252f !important; }
-        .black-key.f-low-target { background-color: #d35400 !important; }
-        .black-key.f-high-target { background-color: #c0392b !important; }
+        .keyboard .black-key.low-target { background-color: #2980b9 !important; }
+        .keyboard .black-key.high-target { background-color: #1a252f !important; }
+        .keyboard .black-key.f-low-target { background-color: #d35400 !important; }
+        .keyboard .black-key.f-high-target { background-color: #c0392b !important; }
     </style>
 </head>
 <body>
@@ -83,6 +83,7 @@
 <script>
 // あなたのGoogleスプレッドシートURLをここに貼り付けてください
 const csvUrl = "https://docs.google.com/spreadsheets/d/1IVKhiXU2tkcck9dn3jcCOpSLw_UO7FDYa46igBDoaqw/export?format=csv";
+// 日本語表現の整合性を修正（mid2=高、hi=超、hihi=超超）
 const noteMapping = {
     "low1C": { name: "下 ド", score: 1 },   "low1C#": { name: "下 ド#", score: 2 },
     "low1D": { name: "下 レ", score: 3 },   "low1D#": { name: "下 レ#", score: 4 },
@@ -100,20 +101,20 @@ const noteMapping = {
     "mid1E": { name: "ミ", score: 17 },
     "mid1F": { name: "ファ", score: 18 },   "mid1F#": { name: "ファ#", score: 19 },
     "mid1G": { name: "ソ", score: 20 },     "mid1G#": { name: "ソ#", score: 21 },
-    "mid2A": { name: "ラ", score: 22 },     "mid2A#": { name: "ラ#", score: 23 },
-    "mid2B": { name: "シ", score: 24 },
+    "mid2A": { name: "高 ラ", score: 22 },  "mid2A#": { name: "高 ラ#", score: 23 },
+    "mid2B": { name: "高 シ", score: 24 },
     "mid2C": { name: "高 ド", score: 25 },   "mid2C#": { name: "高 ド#", score: 26 },
     "mid2D": { name: "高 レ", score: 27 },   "mid2D#": { name: "高 レ#", score: 28 },
     "mid2E": { name: "高 ミ", score: 29 },
     "mid2F": { name: "高 ファ", score: 30 }, "mid2F#": { name: "高 ファ#", score: 31 },
     "mid2G": { name: "高 ソ", score: 32 },   "mid2G#": { name: "高 ソ#", score: 33 },
-    "hiC":   { name: "高 ド", score: 34 },   "hiC#":   { name: "高 ド#", score: 35 },
-    "hiD":   { name: "高 レ", score: 36 },   "hiD#":   { name: "高 レ#", score: 37 },
-    "hiE":   { name: "高 ミ", score: 38 },
-    "hiF":   { name: "高 ファ", score: 39 }, "hiF#":   { name: "高 ファ#", score: 40 },
-    "hiG":   { name: "高 ソ", score: 41 },   "hiG#":   { name: "高 ソ#", score: 42 },
-    "hihiA": { name: "超 ラ", score: 43 },   "hihiA#": { name: "超 ラ#", score: 44 },
-    "hihiB": { name: "超 シ", score: 45 },   "hihiC":  { name: "超 ド", score: 46 }
+    "hiC":   { name: "超 ド", score: 34 },   "hiC#":   { name: "超 ド#", score: 35 },
+    "hiD":   { name: "超 レ", score: 36 },   "hiD#":   { name: "超 レ#", score: 37 },
+    "hiE":   { name: "超 ミ", score: 38 },
+    "hiF":   { name: "超 ファ", score: 39 }, "hiF#":   { name: "超 ファ#", score: 40 },
+    "hiG":   { name: "超 ソ", score: 41 },   "hiG#":   { name: "超 ソ#", score: 42 },
+    "hihiA": { name: "超超 ラ", score: 43 }, "hihiA#": { name: "超超 ラ#", score: 44 },
+    "hihiB": { name: "超超 シ", score: 45 }, "hihiC":  { name: "超超 ド", score: 46 }
 };
 
 const keyboardNotes = [
@@ -162,13 +163,14 @@ function convertToDoremi(key) {
     return noteMapping[key] ? noteMapping[key].name : key;
 }
 
+// クラス付与ロジックを修正。スペースの挟み方を厳密にし上書きを防ぐ
 function getKeyClass(key, nLow, nHigh, nFLow, nFHigh) {
-    let classes = '';
-    if (key === nLow) classes += ' low-target';
-    if (key === nHigh) classes += ' high-target';
-    if (key === nFLow) classes += ' f-low-target';
-    if (key === nFHigh) classes += ' f-high-target';
-    return classes;
+    let classes = [];
+    if (key === nLow) classes.push('low-target');
+    if (key === nHigh) classes.push('high-target');
+    if (key === nFLow) classes.push('f-low-target');
+    if (key === nFHigh) classes.push('f-high-target');
+    return classes.length > 0 ? ' ' + classes.join(' ') : '';
 }
 
 function generateKeyboardHTML(lowKey, highKey, fLowKey, fHighKey) {
@@ -222,17 +224,14 @@ function searchSongs() {
         div.className = 'song-item';
         const keyboardHTML = generateKeyboardHTML(song.low, song.high, song.f_low, song.f_high);
 
-        // 各音の役割ごとにカラーコードをマッピング
         const activeNotes = [];
         if (song.low) activeNotes.push({ key: song.low, score: noteMapping[song.low]?.score || 0, color: '#3498db' });
         if (song.high) activeNotes.push({ key: song.high, score: noteMapping[song.high]?.score || 0, color: '#2c3e50' });
         if (song.f_low) activeNotes.push({ key: song.f_low, score: noteMapping[song.f_low]?.score || 0, color: '#e67e22' });
         if (song.f_high) activeNotes.push({ key: song.f_high, score: noteMapping[song.f_high]?.score || 0, color: '#e74c3c' });
 
-        // 音の高さ順にソート
         activeNotes.sort((a, b) => a.score - b.score);
         
-        // <span>タグを用いて各音に対応する鍵盤と同じ色を適用
         const formattedRange = activeNotes.map(n => 
             `<span style="color: ${n.color};">${convertToDoremi(n.key)}</span>`
         ).join(' / ');
