@@ -19,7 +19,7 @@
         th { background-color: #f2f2f2; }
         .delete-btn { background-color: #e74c3c; }
         .delete-btn:hover { background-color: #c0392b; }
-        .range-badge { font-size: 0.85em; color: #7f8c8d; font-weight: bold; line-height: 1.6; }
+        .range-badge { font-size: 0.95em; color: #555; font-weight: bold; line-height: 1.6; }
         #loadingStatus { color: #e67e22; font-weight: bold; margin-bottom: 10px; }
         
         /* 🎹 4色着色対応 鍵盤スタイル */
@@ -83,8 +83,7 @@
 <script>
 // あなたのGoogleスプレッドシートURLをここに貼り付けてください
 const csvUrl = "https://docs.google.com/spreadsheets/d/1IVKhiXU2tkcck9dn3jcCOpSLw_UO7FDYa46igBDoaqw/export?format=csv";
-
-    const noteMapping = {
+const noteMapping = {
     "low1C": { name: "下 ド", score: 1 },   "low1C#": { name: "下 ド#", score: 2 },
     "low1D": { name: "下 レ", score: 3 },   "low1D#": { name: "下 レ#", score: 4 },
     "low1E": { name: "下 ミ", score: 5 },
@@ -159,11 +158,10 @@ function parseCSV(text) {
 }
 
 function convertToDoremi(key) {
-    if (!key) return "-";
+    if (!key) return "";
     return noteMapping[key] ? noteMapping[key].name : key;
 }
 
-// 🎹 4要素を正規化して適切なクラスを割り当てる関数
 function getKeyClass(key, nLow, nHigh, nFLow, nFHigh) {
     let classes = '';
     if (key === nLow) classes += ' low-target';
@@ -185,7 +183,6 @@ function generateKeyboardHTML(lowKey, highKey, fLowKey, fHighKey) {
     let whiteKeysCount = 0;
     keyboardNotes.forEach(key => { if (!key.includes('#')) whiteKeysCount++; });
 
-    // 1. 白鍵の生成
     keyboardNotes.forEach((key) => {
         if (!key.includes('#')) {
             let statusClass = getKeyClass(key, nLow, nHigh, nFLow, nFHigh);
@@ -193,7 +190,6 @@ function generateKeyboardHTML(lowKey, highKey, fLowKey, fHighKey) {
         }
     });
 
-    // 2. 黒鍵の生成
     let whiteIndex = 0;
     const keyWidthPercent = 100 / whiteKeysCount;
 
@@ -226,16 +222,26 @@ function searchSongs() {
         div.className = 'song-item';
         const keyboardHTML = generateKeyboardHTML(song.low, song.high, song.f_low, song.f_high);
 
-        let rangeText = `原曲キー: <span style="color:#3498db">${convertToDoremi(song.low)}</span> ～ <span style="color:#2c3e50">${convertToDoremi(song.high)}</span>`;
-        if (song.f_low || song.f_high) {
-            rangeText += ` ｜ 裏声: <span style="color:#e67e22">${convertToDoremi(song.f_low)}</span> ～ <span style="color:#e74c3c">${convertToDoremi(song.f_high)}</span>`;
-        }
+        // 各音の役割ごとにカラーコードをマッピング
+        const activeNotes = [];
+        if (song.low) activeNotes.push({ key: song.low, score: noteMapping[song.low]?.score || 0, color: '#3498db' });
+        if (song.high) activeNotes.push({ key: song.high, score: noteMapping[song.high]?.score || 0, color: '#2c3e50' });
+        if (song.f_low) activeNotes.push({ key: song.f_low, score: noteMapping[song.f_low]?.score || 0, color: '#e67e22' });
+        if (song.f_high) activeNotes.push({ key: song.f_high, score: noteMapping[song.f_high]?.score || 0, color: '#e74c3c' });
+
+        // 音の高さ順にソート
+        activeNotes.sort((a, b) => a.score - b.score);
+        
+        // <span>タグを用いて各音に対応する鍵盤と同じ色を適用
+        const formattedRange = activeNotes.map(n => 
+            `<span style="color: ${n.color};">${convertToDoremi(n.key)}</span>`
+        ).join(' / ');
 
         div.innerHTML = `
             <div class="song-info">
                 <div>
                     <strong>${song.title}</strong> / ${song.artist} <br>
-                    <span class="range-badge">${rangeText}</span>
+                    <span class="range-badge">${formattedRange}</span>
                 </div>
                 <button onclick="addToMyList('${escapeHtml(song.artist)}', '${escapeHtml(song.title)}', '${escapeHtml(song.low)}', '${escapeHtml(song.high)}', '${escapeHtml(song.f_low)}', '${escapeHtml(song.f_high)}')">追加</button>
             </div>
@@ -266,7 +272,6 @@ function sortMyList() {
             return scoreA - scoreB;
         });
     } else if (sortType === 'highDesc') {
-        // 裏声最高音があればそれを基準に、なければ地声最高音を基準にして高い順ソート
         mySongs.sort((a, b) => {
             const effHighA = a.f_high || a.high;
             const effHighB = b.f_high || b.high;
