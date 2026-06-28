@@ -81,47 +81,63 @@
 </div>
 
 <script>
+
 const csvUrl = "https://docs.google.com/spreadsheets/d/1IVKhiXU2tkcck9dn3jcCOpSLw_UO7FDYa46igBDoaqw/export?format=csv";
+
+// 🎵 正しい音階順（ド〜シで系列を統一、低い順にスコアを割り当て）
 const noteMapping = {
-    "low1C": { name: "下 ド", score: 1 },   "low1C#": { name: "下 ド#", score: 2 },
-    "low1D": { name: "下 レ", score: 3 },   "low1D#": { name: "下 レ#", score: 4 },
-    "low1E": { name: "下 ミ", score: 5 },
-    "low1F": { name: "下 ファ", score: 6 },  "low1F#": { name: "下 ファ#", score: 7 },
-    "low1G": { name: "下 ソ", score: 8 },   "low1G#": { name: "下 ソ#", score: 9 },
-    "sour1G": { name: "下 ソ", score: 8 },  "sour1G#": { name: "下 ソ#", score: 9 },
-    "low1A": { name: "下 ラ", score: 10 },  "low1A#": { name: "下 ラ#", score: 11 },
-    "sour1A": { name: "下 ラ", score: 10 }, "sour1A#": { name: "下 ラ#", score: 11 },
-    "low1B": { name: "下 シ", score: 12 },  "sour1B": { name: "下 シ", score: 12 },
-    "mid1A": { name: "低 ラ", score: 10 },  "mid1A#": { name: "低 ラ#", score: 11 },
-    "mid1B": { name: "低 シ", score: 12 },
-    "mid1C": { name: "ド", score: 13 },     "mid1C#": { name: "ド#", score: 14 },
-    "mid1D": { name: "レ", score: 15 },     "mid1D#": { name: "レ#", score: 16 },
-    "mid1E": { name: "ミ", score: 17 },
-    "mid1F": { name: "ファ", score: 18 },   "mid1F#": { name: "ファ#", score: 19 },
-    "mid1G": { name: "ソ", score: 20 },     "mid1G#": { name: "ソ#", score: 21 },
-    "mid2A": { name: "高 ラ", score: 22 },  "mid2A#": { name: "高 ラ#", score: 23 },
-    "mid2B": { name: "高 シ", score: 24 },
-    "mid2C": { name: "高 ド", score: 25 },   "mid2C#": { name: "高 ド#", score: 26 },
-    "mid2D": { name: "高 レ", score: 27 },   "mid2D#": { name: "高 レ#", score: 28 },
-    "mid2E": { name: "高 ミ", score: 29 },
-    "mid2F": { name: "高 ファ", score: 30 }, "mid2F#": { name: "高 ファ#", score: 31 },
-    "mid2G": { name: "高 ソ", score: 32 },   "mid2G#": { name: "高 ソ#", score: 33 },
-    "hiC":   { name: "超 ド", score: 34 },   "hiC#":   { name: "超 ド#", score: 35 },
-    "hiD":   { name: "超 レ", score: 36 },   "hiD#":   { name: "超 レ#", score: 37 },
-    "hiE":   { name: "超 ミ", score: 38 },
-    "hiF":   { name: "超 ファ", score: 39 }, "hiF#":   { name: "超 ファ#", score: 40 },
-    "hiG":   { name: "超 ソ", score: 41 },   "hiG#":   { name: "超 ソ#", score: 42 },
-    "hihiA": { name: "超超 ラ", score: 43 }, "hihiA#": { name: "超超 ラ#", score: 44 },
-    "hihiB": { name: "超超 シ", score: 45 }, "hihiC":  { name: "超超 ド", score: 46 }
+    // 1. 【下】系列 (1〜12)
+    "low1C":   { name: "下 ド", score: 1 },    "low1C#":  { name: "下 ド#", score: 2 },
+    "low1D":   { name: "下 レ", score: 3 },    "low1D#":  { name: "下 レ#", score: 4 },
+    "low1E":   { name: "下 ミ", score: 5 },
+    "low1F":   { name: "下 ファ", score: 6 },   "low1F#":  { name: "下 ファ#", score: 7 },
+    "low1G":   { name: "下 ソ", score: 8 },    "low1G#":  { name: "下 ソ#", score: 9 },
+    "mid1A":   { name: "下 ラ", score: 10 },   "mid1A#":  { name: "下 ラ#", score: 11 },
+    "mid1B":   { name: "下 シ", score: 12 },
+
+    // 2. 【基準（冠詞なし）】系列 (13〜24)
+    "mid1C":   { name: "ド", score: 13 },      "mid1C#":  { name: "ド#", score: 14 },
+    "mid1D":   { name: "レ", score: 15 },      "mid1D#":  { name: "レ#", score: 16 },
+    "mid1E":   { name: "ミ", score: 17 },
+    "mid1F":   { name: "ファ", score: 18 },    "mid1F#":  { name: "ファ#", score: 19 },
+    "mid1G":   { name: "ソ", score: 20 },      "mid1G#":  { name: "ソ#", score: 21 },
+    "mid2A":   { name: "ラ", score: 22 },      "mid2A#":  { name: "ラ#", score: 23 },
+    "mid2B":   { name: "シ", score: 24 },
+
+    // 3. 【高】系列 (25〜36)
+    "mid2C":   { name: "高 ド", score: 25 },   "mid2C#":  { name: "高 ド#", score: 26 },
+    "mid2D":   { name: "高 レ", score: 27 },   "mid2D#":  { name: "高 レ#", score: 28 },
+    "mid2E":   { name: "高 ミ", score: 29 },
+    "mid2F":   { name: "高 ファ", score: 30 },  "mid2F#":  { name: "高 ファ#", score: 31 },
+    "mid2G":   { name: "高 ソ", score: 32 },   "mid2G#":  { name: "高 ソ#", score: 33 },
+    "hiA":     { name: "高 ラ", score: 34 },   "hiA#":    { name: "高 ラ#", score: 35 },
+    "hiB":     { name: "高 シ", score: 36 },
+
+    // 4. 【超】系列 (37〜48)
+    "hiC":     { name: "超 ド", score: 37 },   "hiC#":    { name: "超 ド#", score: 41 },
+    "hiD":     { name: "超 レ", score: 39 },   "hiD#":    { name: "超 レ#", score: 40 },
+    "hiE":     { name: "超 ミ", score: 41 },
+    "hiF":     { name: "超 ファ", score: 42 },  "hiF#":    { name: "超 ファ#", score: 43 },
+    "hiG":     { name: "超 ソ", score: 44 },   "hiG#":    { name: "超 ソ#", score: 45 },
+    "hihiA":   { name: "超 ラ", score: 46 },   "hihiA#":  { name: "超 ラ#", score: 47 },
+    "hihiB":   { name: "超 シ", score: 48 },
+
+    // 5. 【超超】系列 (49〜)
+    "hihiC":   { name: "超超 ド", score: 49 }
 };
 
-// 🎹 鍵盤の並び順の抜け・スキップを完全に修正
+// 🎹 鍵盤表示用配列（完全に低い音から順番にマッピング）
 const keyboardNotes = [
-    "low1C", "low1C#", "low1D", "low1D#", "low1E", "low1F", "low1F#", "low1G", "low1G#", "low1A", "low1A#", "low1B",
-    "mid1C", "mid1C#", "mid1D", "mid1D#", "mid1E", "mid1F", "mid1F#", "mid1G", "mid1G#",
-    "mid2A", "mid2A#", "mid2B", "mid2C", "mid2C#", "mid2D", "mid2D#", "mid2E", "mid2F", "mid2F#", "mid2G", "mid2G#",
-    "hiC", "hiC#", "hiD", "hiD#", "hiE", "hiF", "hiF#", "hiG", "hiG#",
-    "hihiA", "hihiA#", "hihiB", "hihiC"
+    // 「下」系列 (C〜B)
+    "low1C", "low1C#", "low1D", "low1D#", "low1E", "low1F", "low1F#", "low1G", "low1G#", "mid1A", "mid1A#", "mid1B",
+    // 「基準」系列 (C〜B)
+    "mid1C", "mid1C#", "mid1D", "mid1D#", "mid1E", "mid1F", "mid1F#", "mid1G", "mid1G#", "mid2A", "mid2A#", "mid2B",
+    // 「高」系列 (C〜B)
+    "mid2C", "mid2C#", "mid2D", "mid2D#", "mid2E", "mid2F", "mid2F#", "mid2G", "mid2G#", "hiA", "hiA#", "hiB",
+    // 「超」系列 (C〜B)
+    "hiC", "hiC#", "hiD", "hiD#", "hiE", "hiF", "hiF#", "hiG", "hiG#", "hihiA", "hihiA#", "hihiB",
+    // 「超超」系列 (C)
+    "hihiC"
 ];
 
 let songDatabase = [];
@@ -173,7 +189,8 @@ function getKeyClass(key, nLow, nHigh, nFLow, nFHigh) {
 }
 
 function generateKeyboardHTML(lowKey, highKey, fLowKey, fHighKey) {
-    const normalize = (k) => k.replace("sour", "low").replace("mid1A", "low1A").replace("mid1B", "low1B");
+    // 識別子のブレを正規化（旧バージョンの互換性維持用、sourは廃止）
+    const normalize = (k) => k; 
     let nLow = normalize(lowKey);
     let nHigh = normalize(highKey);
     let nFLow = fLowKey ? normalize(fLowKey) : "";
@@ -184,6 +201,7 @@ function generateKeyboardHTML(lowKey, highKey, fLowKey, fHighKey) {
     let whiteKeysCount = 0;
     keyboardNotes.forEach(key => { if (!key.includes('#')) whiteKeysCount++; });
 
+    // 白鍵の描画
     keyboardNotes.forEach((key) => {
         if (!key.includes('#')) {
             let statusClass = getKeyClass(key, nLow, nHigh, nFLow, nFHigh);
@@ -191,6 +209,7 @@ function generateKeyboardHTML(lowKey, highKey, fLowKey, fHighKey) {
         }
     });
 
+    // 黒鍵の描画（位置の自動計算）
     let whiteIndex = 0;
     const keyWidthPercent = 100 / whiteKeysCount;
 
